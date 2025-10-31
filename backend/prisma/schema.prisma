@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Product {
+  id                  String   @id @default(cuid())
+  sku                 String   @unique
+  asin                String?  @db.VarChar(16)
+  ean                 String?  @db.VarChar(14)
+  title               String
+  brand               String?
+  category            String?
+  status              ProductStatus @default(active)
+
+  unitsPerCase        Int       @default(1)
+  caseMultiple        Int       @default(1)
+
+  leadtimeCollectBd   Int       @default(3)
+  leadtimeCheckinBd   Int       @default(3)
+  cutoffHour          String    @default("12:00")
+
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // relations
+  orders              Order[]
+  inventorySnapshots  InventorySnapshot[]
+
+  @@index([sku])
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  orderedAt  DateTime
+  qty        Int
+
+  @@index([productId, orderedAt])
+}
+
+/**
+ * Snapshot de estoque consolidado em um instante (ts).
+ * Único por (productId, ts) para permitir histórico e gráficos.
+ */
+model InventorySnapshot {
+  id          String   @id @default(cuid())
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId   String
+  ts          DateTime
+
+  // saldos por status
+  fulfillable Int      @default(0) // vendável
+  reserved    Int      @default(0) // reservado (pedido gerado, não enviado)
+  inbound     Int      @default(0) // em trânsito/check-in
+  unsellable  Int      @default(0) // danificado/irrecuperável
+  transfer    Int      @default(0) // transfer/redistribuição
+
+  @@unique([productId, ts], name: "productId_ts")
+  @@index([productId, ts])
+}
+
+enum ProductStatus {
+  active
+  inactive
+  archived
+}
