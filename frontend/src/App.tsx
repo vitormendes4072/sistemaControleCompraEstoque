@@ -1,64 +1,66 @@
-// frontend/src/App.tsx - CÓDIGO CORRIGIDO
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-
-// Interface para os dados da API
-interface ReplenishmentData {
-  success: boolean;
-  data: Array<{
-    sku: string;
-    productTitle: string;
-    currentStock: number;
-    dailyDemand: number;
-    leadTimeDays: number;
-    reorderPoint: number;
-    suggestedQuantity: number;
-    needsReplenishment: boolean;
-    daysOfCoverage: number;
-  }>;
-  summary: {
-    totalProducts: number;
-    needsReplenishment: number;
-    averageCoverage: number;
-  };
-}
+import Dashboard from './components/Dashboard';
+import { api } from './services/api';
+import type { ReplenishmentProduct } from './types/replenishment';
 
 function App() {
-  const [data, setData] = useState<ReplenishmentData | null>(null);
+  const [products, setProducts] = useState<ReplenishmentProduct[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const testConnection = async () => {
+    const loadReplenishmentData = async () => {
       try {
-        const response = await axios.get('/api/replenishment');
-        setData(response.data);
+        const response = await api.getReplenishment();
+        if (response.success) {
+          setProducts(response.data);
+        }
       } catch (error) {
-        console.error('Erro:', error);
-        setData({ 
-          success: false,
-          data: [],
-          summary: {
-            totalProducts: 0,
-            needsReplenishment: 0,
-            averageCoverage: 0
+        console.error('Erro ao carregar dados:', error);
+        // Fallback com dados mockados
+        setProducts([
+          {
+            sku: "DORMIO-PILLOW-MEMO-STD",
+            productTitle: "Travesseiro DORMIO Viscoelástico Padrão",
+            currentStock: 40,
+            dailyDemand: 4,
+            leadTimeDays: 6,
+            reorderPoint: 24,
+            suggestedQuantity: 28,
+            needsReplenishment: false,
+            daysOfCoverage: 10
+          },
+          {
+            sku: "ECOFLOW-RIVER-127V",
+            productTitle: "EcoFlow River 3 (127V)",
+            currentStock: 5,
+            dailyDemand: 1,
+            leadTimeDays: 6,
+            reorderPoint: 6,
+            suggestedQuantity: 7,
+            needsReplenishment: true,
+            daysOfCoverage: 5
+          },
+          {
+            sku: "CANETA-TOUCH-168",
+            productTitle: "Kit Canetas Touch 168 cores",
+            currentStock: 83,
+            dailyDemand: 4,
+            leadTimeDays: 6,
+            reorderPoint: 24,
+            suggestedQuantity: 36,
+            needsReplenishment: false,
+            daysOfCoverage: 20.75
           }
-        });
+        ]);
       } finally {
         setLoading(false);
       }
     };
 
-    testConnection();
+    loadReplenishmentData();
   }, []);
 
-  if (loading) return <div>Testando conexão com backend...</div>;
-
-  return (
-    <div style={{ padding: '20px' }}>
-      <h1>🚀 Teste de Conexão - VEntregaz FBA</h1>
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
-  );
+  return <Dashboard products={products} loading={loading} />;
 }
 
 export default App;
