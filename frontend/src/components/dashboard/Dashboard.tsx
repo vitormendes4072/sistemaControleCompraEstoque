@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ReplenishmentProduct } from '../types/replenishment';
+import type { ReplenishmentProduct } from '../../types/replenishment';
 
 interface DashboardProps {
   products: ReplenishmentProduct[];
